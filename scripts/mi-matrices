@@ -29,6 +29,8 @@ n_show = 2000
 mutual_infos = np.zeros((len(features_sex),))
 mutual_infos_log = np.zeros((len(features_sex),))
 
+print label_diet_map
+"""
 print "Computing MI from bootstraps (Sex)"
 for n in range(n_averages):
   # draw a bootstrap sample from the normalized data and compute the mutual 
@@ -57,10 +59,10 @@ si = np.array(sorted(range(len(mutual_info)), key=lambda k: mutual_infos[k]/n_av
 mi_mat = mi.mi_matrix(data_sex[:,si], par=True, cpus=10)
 output_sex = {"mi_mat":mi_mat, "si":si, "mutual_info":mutual_infos/n_averages}
 pickle.dump(output_sex, open( "../files/mi-mat-sex.pkl", "wb" ) )
+"""
 
-
-mutual_infos = np.zeros((len(features_sex),))
-mutual_infos_log = np.zeros((len(features_sex),))
+mutual_infos = np.zeros((len(features_diet),))
+mutual_infos_log = np.zeros((len(features_diet),))
 print "Computing MI from bootstraps (Diet)"
 for n in range(n_averages):
   # draw a bootstrap sample from the normalized data and compute the mutual 
@@ -84,8 +86,8 @@ for n in range(n_averages):
   mutual_info_log = mi.calc_mi(data=data_n_log, labels=labels_n_log)
   mutual_infos_log += mutual_info_log
 
-print "Computing MI Matrix (Sex)"
-si = np.array(sorted(range(len(mutual_info)), key=lambda k: mutual_infos[k]/n_averages)[::-1][:1000])
-mi_mat = mi.mi_matrix(data_diet[:,si], par=True, cpus=10)
+print "Computing MI Matrix (Diet)"
+si = np.array(sorted(range(len(mutual_info)), key=lambda k: mutual_infos[k]/n_averages)[::-1][:100])
+mi_mat = mi.mi_matrix(data_diet[:,si], par=False, cpus=None)
 output_diet = {"mi_mat":mi_mat, "si":si, "mutual_info":mutual_infos/n_averages}
 pickle.dump(output_diet, open( "../files/mi-mat-diet.pkl", "wb" ))
