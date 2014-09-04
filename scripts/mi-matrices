@@ -1,0 +1,91 @@
+#!/usr/bin/env python 
+import sys
+import numpy as np
+import pandas as pd
+import pickle 
+
+sys.path.append("../src/")
+import utils 
+import bmu
+import mi
+
+print "Loading the sex data"
+data, samples_sex, features_sex = bmu.load_biom("/home/ditzler/Git/DataCollections/AmericanGut/AmericanGut-Gut-Sex.biom")
+map_sex = bmu.load_map("/home/ditzler/Git/DataCollections/AmericanGut/AmericanGut-Gut-Sex.txt")
+labels_sex_numeric, label_sex_map = utils.label_formatting(map_sex, samples_sex, "SEX")
+data_sex = utils.normalize(1.+data)
+data_sex_log = utils.normalize(1.+data, scale="log")
+
+print "Loading the diet data"
+data, samples_diet, features_diet = bmu.load_biom("/home/ditzler/Git/DataCollections/AmericanGut/AmericanGut-Gut-Diet.biom")
+map_diet = bmu.load_map("/home/ditzler/Git/DataCollections/AmericanGut/AmericanGut-Gut-Diet-OV.txt")
+labels_diet_numeric, label_diet_map = utils.label_formatting(map_diet, samples_diet, "DIET_TYPE")
+data_diet = utils.normalize(1.+data)
+data_diet_log = utils.normalize(1.+data, scale="log")
+
+
+n_averages = 25
+n_show = 2000
+mutual_infos = np.zeros((len(features_sex),))
+mutual_infos_log = np.zeros((len(features_sex),))
+
+print "Computing MI from bootstraps (Sex)"
+for n in range(n_averages):
+  # draw a bootstrap sample from the normalized data and compute the mutual 
+  # information. 
+  idx = np.random.randint(0, len(samples_sex), len(samples_sex))
+  data_n = data_sex[idx]
+  labels_n = labels_sex_numeric[idx]
+  mutual_info = mi.calc_mi(data=data_n, labels=labels_n)
+  mutual_infos += mutual_info
+  
+  # if this is the first time through, determine and fixed ordering based on 
+  # the mutual information 
+  if n == 0:
+    idx_sorted = np.argsort(mutual_info)
+  
+  # draw a bootstrap sample from the normalized data that has a log transform
+  # applied then compute the mutual information. 
+  idx = np.random.randint(0, len(samples_sex), len(samples_sex))
+  data_n_log = data_sex_log[idx]
+  labels_n_log = labels_sex_numeric[idx]
+  mutual_info_log = mi.calc_mi(data=data_n_log, labels=labels_n_log)
+  mutual_infos_log += mutual_info_log
+
+print "Computing MI Matrix (Sex)"
+si = np.array(sorted(range(len(mutual_info)), key=lambda k: mutual_infos[k]/n_averages)[::-1][:1000])
+mi_mat = mi.mi_matrix(data_sex[:,si], par=True, cpus=10)
+output_sex = {"mi_mat":mi_mat, "si":si, "mutual_info":mutual_infos/n_averages}
+pickle.dump(output_sex, open( "../files/mi-mat-sex.pkl", "wb" ) )
+
+
+mutual_infos = np.zeros((len(features_sex),))
+mutual_infos_log = np.zeros((len(features_sex),))
+print "Computing MI from bootstraps (Diet)"
+for n in range(n_averages):
+  # draw a bootstrap sample from the normalized data and compute the mutual 
+  # information. 
+  idx = np.random.randint(0, len(samples_diet), len(samples_diet))
+  data_n = data_diet[idx]
+  labels_n = labels_diet_numeric[idx]
+  mutual_info = mi.calc_mi(data=data_n, labels=labels_n)
+  mutual_infos += mutual_info
+  
+  # if this is the first time through, determine and fixed ordering based on 
+  # the mutual information 
+  if n == 0:
+    idx_sorted = np.argsort(mutual_info)
+                                                            
+  # draw a bootstrap sample from the normalized data that has a log transform
+  # applied then compute the mutual information. 
+  idx = np.random.randint(0, len(samples_diet), len(samples_diet))
+  data_n_log = data_diet_log[idx]
+  labels_n_log = labels_diet_numeric[idx]
+  mutual_info_log = mi.calc_mi(data=data_n_log, labels=labels_n_log)
+  mutual_infos_log += mutual_info_log
+
+print "Computing MI Matrix (Sex)"
+si = np.array(sorted(range(len(mutual_info)), key=lambda k: mutual_infos[k]/n_averages)[::-1][:1000])
+mi_mat = mi.mi_matrix(data_diet[:,si], par=True, cpus=10)
+output_diet = {"mi_mat":mi_mat, "si":si, "mutual_info":mutual_infos/n_averages}
+pickle.dump(output_diet, open( "../files/mi-mat-diet.pkl", "wb" ))
